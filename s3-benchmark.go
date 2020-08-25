@@ -5,8 +5,8 @@ package main
 
 import (
 	"bytes"
+	"code.cloudfoundry.org/bytefmt"
 	"crypto/hmac"
-	"crypto/md5"
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"code.cloudfoundry.org/bytefmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -37,7 +36,7 @@ var access_key, secret_key, url_host, bucket, region string
 var duration_secs, threads, loops int
 var object_size uint64
 var object_data []byte
-var object_data_md5 string
+//var object_data_md5 string
 var running_threads, upload_count, download_count, delete_count, upload_slowdown_count, download_slowdown_count, delete_slowdown_count int32
 var endtime, upload_finish, download_finish, delete_finish time.Time
 
@@ -198,7 +197,9 @@ func setSignature(req *http.Request) {
 	// Get the canonical resource and header
 	canonicalResource := req.URL.EscapedPath()
 	canonicalHeaders := canonicalAmzHeaders(req)
-	stringToSign := req.Method + "\n" + req.Header.Get("Content-MD5") + "\n" + req.Header.Get("Content-Type") + "\n\n" +
+	//stringToSign := req.Method + "\n" + req.Header.Get("Content-MD5") + "\n" + req.Header.Get("Content-Type") + "\n\n" +
+	//	canonicalHeaders + canonicalResource
+	stringToSign := req.Method + "\n" + req.Header.Get("Content-Type") + "\n\n" +
 		canonicalHeaders + canonicalResource
 	hash := hmacSHA1([]byte(secret_key), stringToSign)
 	signature := base64.StdEncoding.EncodeToString(hash)
@@ -212,7 +213,7 @@ func runUpload(thread_num int) {
 		prefix := fmt.Sprintf("%s/%s/Object-%d", url_host, bucket, objnum)
 		req, _ := http.NewRequest("PUT", prefix, fileobj)
 		req.Header.Set("Content-Length", strconv.FormatUint(object_size, 10))
-		req.Header.Set("Content-MD5", object_data_md5)
+		//req.Header.Set("Content-MD5", object_data_md5)
 		setSignature(req)
 		if resp, err := httpClient.Do(req); err != nil {
 			log.Fatalf("FATAL: Error uploading object %s: %v", prefix, err)
@@ -319,10 +320,10 @@ func main() {
 
 	// Initialize data for the bucket
 	object_data = make([]byte, object_size)
-	rand.Read(object_data)
-	hasher := md5.New()
-	hasher.Write(object_data)
-	object_data_md5 = base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	//rand.Read(object_data)
+	//hasher := md5.New()
+	//hasher.Write(object_data)
+	//object_data_md5 = base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Create the bucket and delete all the objects
 	createBucket(true)
